@@ -1,0 +1,56 @@
+# dashboard-eduai, production. Astro 7 SSR standalone server behind Caddy.
+#
+# NOT INSTALLED YET. Run infra/install.sh to put it in place.
+#
+# Two things in here look odd and are both deliberate:
+#
+# 1. ExecStart goes through /bin/bash. Node lives under /root/.nvm, and on this
+#    host SELinux is enforcing: a binary under a home directory is labelled
+#    cache_home_t, which init_t may not execve (fails 203/EXEC). systemd can
+#    exec /bin/bash, and bash then execs node. SELinuxContext alone does not fix
+#    this — the file's own execve is still checked against init_t.
+#
+# 2. ExecStartPre kills whatever holds the port, with a leading `-` so a clean
+#    start is not treated as a failure. Ports get claimed by strays after a
+#    crash, and a unit that cannot bind is worse than one that evicts a corpse.
+
+[Unit]
+Description=dashboard-eduai (Astro 7 SSR, standalone)
+Documentation=file:///home/apps/edu-master-ai/dashboard-eduai/AGENTS.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/apps/edu-master-ai/dashboard-eduai
+
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=4325
+# Everything else — SITE_URL, API_URL, API_TOKEN, ALLOWED_HOSTNAMES — comes from
+# this file, mode 600, root-owned. Secrets do not belong in the unit itself,
+# because unit files are world readable.
+EnvironmentFile=-/etc/dashboard-eduai.env
+
+ExecStartPre=-/usr/sbin/fuser -k 4325/tcp
+ExecStart=/bin/bash -c 'exec /root/.nvm/versions/node/v24.15.0/bin/node ./dist/server/entry.mjs'
+SELinuxContext=system_u:system_r:unconfined_service_t:s0
+
+Restart=always
+RestartSec=2
+KillMode=mixed
+TimeoutStopSec=15
+
+# The process needs to read its own build and write session files. Nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/apps/edu-master-ai/dashboard-eduai
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dashboard-eduai
+
+[Install]
+WantedBy=multi-user.target

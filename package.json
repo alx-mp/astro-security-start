@@ -1,0 +1,49 @@
+{
+	"name": "dashboard-eduai",
+	"type": "module",
+	"version": "0.0.1",
+	"private": true,
+	"packageManager": "pnpm@11.1.1",
+	"engines": {
+		"node": ">=22.12.0",
+		"pnpm": ">=11.1.1",
+		"npm": "please-use-pnpm",
+		"yarn": "please-use-pnpm"
+	},
+	"scripts": {
+		"preinstall": "node scripts/enforce-pnpm.mjs",
+		"postinstall": "astro sync",
+		"dev": "astro dev",
+		"dev:bg": "astro dev --background",
+		"dev:stop": "astro dev stop",
+		"dev:status": "astro dev status",
+		"dev:logs": "astro dev logs",
+		"build": "node scripts/check-lockfiles.mjs && astro check && astro build",
+		"build:fast": "astro build",
+		"preview": "astro preview",
+		"check": "astro check",
+		"sync": "astro sync",
+		"lockfiles": "node scripts/check-lockfiles.mjs",
+		"verify": "node scripts/check-lockfiles.mjs && biome check . && astro check && vitest run",
+		"ci": "node scripts/check-lockfiles.mjs && biome check . && astro check && vitest run && astro build",
+		"astro": "astro",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"@astrojs/node": "^11.1.2",
+		"@tailwindcss/vite": "^4.3.3",
+		"astro": "^7.2.2",
+		"tailwindcss": "^4.3.3"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.10",
+		"@biomejs/biome": "^2.5.8",
+		"@types/node": "^26.2.0",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.10"
+	}
+}

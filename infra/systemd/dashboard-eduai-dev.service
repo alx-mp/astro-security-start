@@ -1,0 +1,44 @@
+# dashboard-eduai dev server, Astro dev with HMR. Same shape as the sibling
+# *-dev units on this host.
+#
+# NOT INSTALLED YET. Run infra/install.sh --dev to put it in place.
+#
+# Why a unit for a dev server: a hand-started `bun run dev` serves stale code
+# after the next rebuild, does not come back after a reboot, and leaves orphans
+# fighting over the port when it is restarted by hand. That bites across
+# sessions, and systemd is the standing fix.
+#
+# ASTRO_DEV_BACKGROUND is set because Astro 7 detects an AI agent and detaches
+# on its own, which would hand systemd a process that exits immediately. The
+# check is for presence, not value, so any non-empty value keeps the server in
+# the foreground where systemd can supervise it.
+
+[Unit]
+Description=dashboard-eduai dev server (astro dev)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/apps/edu-master-ai/dashboard-eduai
+
+Environment=NODE_ENV=development
+Environment=HOST=127.0.0.1
+Environment=PORT=4325
+Environment=ASTRO_DEV_BACKGROUND=0
+EnvironmentFile=-/etc/dashboard-eduai.env
+
+ExecStartPre=-/usr/sbin/fuser -k 4325/tcp
+ExecStart=/bin/bash -c 'exec /root/.bun/bin/bun run dev'
+SELinuxContext=system_u:system_r:unconfined_service_t:s0
+
+Restart=always
+RestartSec=2
+KillMode=mixed
+TimeoutStopSec=15
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dashboard-eduai-dev
+
+[Install]
+WantedBy=multi-user.target

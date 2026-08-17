@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Astro passes the thrown error to this page. Read it, log it, and do not
+// render it: a stack trace in the browser tells an attacker your file layout,
+// your dependency versions and sometimes your connection strings.
+const { error } = Astro.props;
+
+if (error instanceof Error) {
+	console.error('[500]', Astro.url.pathname, error.message, error.stack);
+} else if (error !== undefined) {
+	console.error('[500]', Astro.url.pathname, String(error));
+}
+---
+
+<Layout title="500 · Error del servidor" description="Ocurrió un error al procesar la solicitud.">
+	<main class="mx-auto flex min-h-full max-w-xl flex-col justify-center gap-6 px-6 py-16">
+		<p class="font-mono text-sm text-slate-500 dark:text-slate-400">500</p>
+		<h1 class="text-3xl font-semibold tracking-tight">Algo falló de nuestro lado</h1>
+		<p class="text-slate-600 dark:text-slate-300">
+			El error quedó registrado. Si vuelve a ocurrir, avísanos indicando la hora aproximada.
+		</p>
+		<div>
+			<a
+				href="/"
+				class="inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+			>
+				Volver al inicio
+			</a>
+		</div>
+	</main>
+</Layout>

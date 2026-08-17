@@ -1,0 +1,59 @@
+# Bun runs things here. It does not install things here.
+#
+# The split is deliberate: pnpm owns node_modules and pnpm-lock.yaml, bun owns
+# `bun run dev`, `bun run build` and anything else that executes.
+#
+# Everything below was tested against the bun actually on this box, 1.3.13, on
+# 2026-08-14. bun.com/docs currently documents 1.3.14, and several install keys
+# in those docs do nothing on 1.3.13. Re-test after a bun upgrade rather than
+# trusting the page.
+
+telemetry = false
+
+[install]
+# The one lever here that carries real weight. Bun's default is "auto": if
+# node_modules is missing when you run a script, it quietly fetches
+# dependencies from npm mid-run. That routes installs around pnpm with no
+# lockfile and no review. Verified working on 1.3.13: with this set, importing
+# a missing package fails with "Cannot find package" instead of installing it.
+auto = "disable"
+
+# Does not stop `bun install` on 1.3.13 (measured: it still installed and
+# populated node_modules). What it does do is block the bun.lock write, which
+# is worth having, because bun otherwise migrates pnpm-lock.yaml into its own
+# format on first contact and you end up with two dependency trees.
+#
+# The thing that actually stops `bun install` is the preinstall guard in
+# package.json -> scripts/enforce-pnpm.mjs.
+frozenLockfile = true
+
+# Skip versions published in the last three days. Verified working on 1.3.13.
+# Bun counts seconds; pnpm counts minutes for the same policy, so 259200 here
+# and 4320 in pnpm-workspace.yaml are the same three days.
+minimumReleaseAge = 259200
+minimumReleaseAgeExcludes = []
+
+# Deliberately NOT set here:
+#
+#   ignoreScripts   Looks like hardening, is the opposite. It also skips THIS
+#                   project's preinstall script, which is the only thing that
+#                   stops `bun install`. Measured 2026-08-14: with it on, bun
+#                   sailed past the guard and replaced 279 packages.
+#   dryRun          Documented for 1.3.14, ignored by 1.3.13. Measured: bun
+#                   installed and wrote bun.lock with dryRun = true set. The
+#                   CLI flag --dry-run does work; the bunfig key does not.
+
+[run]
+# Run package.json scripts on Bun's runtime rather than Node. Equivalent to
+# typing `bun --bun run <script>` every time: Bun puts a `node` shim ahead of
+# the real binary on PATH, so the `#!/usr/bin/env node` shebang in Astro's CLI
+# lands on Bun too. Verified: `bun run <script>` reports Bun 1.3.13 as its
+# runtime, and `astro preview` shows up in `ss -ltnp` as a bun process.
+bun = true
+
+# Deliberately NOT set here:
+#
+#   noOrphans   Documented for 1.3.14, absent from 1.3.13. The string does not
+#               appear anywhere in the binary and `bun --help` has no
+#               --no-orphans. Add it after upgrading bun; until then, systemd
+#               is what reaps stragglers.

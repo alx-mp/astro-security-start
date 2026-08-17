@@ -1,0 +1,24 @@
+{
+	// Use the TypeScript in node_modules (6.0.3), not the one bundled with the
+	// editor. Without this the editor type-checks with a different compiler than
+	// `bun run check` does, and the two disagree on tsconfig resolution.
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.enablePromptUseWorkspaceTsdk": true,
+
+	// `extends: "astro/tsconfigs/strict"` resolves through astro's exports map,
+	// so it only works once node_modules exists. If the editor was open while
+	// node_modules was missing it caches the failure and keeps reporting
+	// "File 'astro/tsconfigs/strict' not found" after the install succeeds.
+	// Reload the window, or run: TypeScript: Restart TS Server.
+	"typescript.tsserver.watchOptions": {
+		"watchDirectory": "useFsEvents"
+	},
+
+	"files.associations": {
+		"*.astro": "astro"
+	},
+	"editor.formatOnSave": true,
+	"[astro]": {
+		"editor.defaultFormatter": "astro-build.astro-vscode"
+	}
+}

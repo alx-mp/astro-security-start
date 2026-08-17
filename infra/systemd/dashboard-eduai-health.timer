@@ -1,0 +1,18 @@
+# Fires the health probe every 45 seconds.
+#
+# NOT INSTALLED YET. Run infra/install.sh to put it in place.
+
+[Unit]
+Description=Poll dashboard-eduai /health every 45s
+Requires=dashboard-eduai-health.service
+
+[Timer]
+# Give the service a minute to boot before the first probe, or the watchdog
+# restarts it during its own startup and never converges.
+OnBootSec=60s
+OnUnitActiveSec=45s
+AccuracySec=5s
+Unit=dashboard-eduai-health.service
+
+[Install]
+WantedBy=timers.target

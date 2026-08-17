@@ -1,0 +1,63 @@
+/* Tailwind 4. One import, no tailwind.config.js — v4 reads its configuration
+   from CSS. Docs: https://tailwindcss.com/docs/theme */
+@import "tailwindcss";
+
+/* Design tokens. Anything declared here becomes a utility automatically:
+   --color-brand-500 gives you bg-brand-500, text-brand-500, border-brand-500.
+   Extend this per project rather than reaching for arbitrary values like
+   bg-[#4f46e5] in markup, which are invisible to a later redesign. */
+@theme {
+	--color-brand-50: oklch(0.97 0.014 254);
+	--color-brand-100: oklch(0.93 0.032 255);
+	--color-brand-200: oklch(0.88 0.059 254);
+	--color-brand-300: oklch(0.81 0.096 252);
+	--color-brand-400: oklch(0.71 0.143 254);
+	--color-brand-500: oklch(0.62 0.188 259);
+	--color-brand-600: oklch(0.55 0.216 263);
+	--color-brand-700: oklch(0.49 0.209 264);
+	--color-brand-800: oklch(0.42 0.174 264);
+	--color-brand-900: oklch(0.38 0.135 266);
+	--color-brand-950: oklch(0.28 0.089 267);
+
+	--font-sans:
+		system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+	--font-mono:
+		ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Plain CSS still belongs here for the handful of things utilities cannot
+   express: base element defaults, and rules that depend on user preferences. */
+@layer base {
+	html {
+		scroll-behavior: smooth;
+	}
+
+	/* Respect an explicit request for less motion. Doing this in base CSS covers
+     every component at once, which no utility class can. */
+	@media (prefers-reduced-motion: reduce) {
+		html {
+			scroll-behavior: auto;
+		}
+
+		/* biome-ignore-start lint/complexity/noImportantStyles: the whole point is
+		   to beat every component-level animation declaration, including the ones
+		   utilities generate. Without !important a single `transition-colors` on a
+		   button reinstates the motion this block exists to remove. This is the
+		   one place in the codebase where !important is the correct tool. */
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+		}
+		/* biome-ignore-end lint/complexity/noImportantStyles: end of the exception */
+	}
+
+	/* Keyboard focus stays visible. Removing outlines without a replacement is
+     the most common accessibility regression in a utility-first codebase. */
+	:focus-visible {
+		outline: 2px solid var(--color-brand-500);
+		outline-offset: 2px;
+	}
+}

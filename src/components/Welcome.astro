@@ -1,0 +1,81 @@
+---
+import astroLogo from '../assets/astro.svg';
+
+/*
+ * Reference component for the Tailwind conventions in this project.
+ *
+ * No <style> block on purpose. Utilities cover everything here, and the tokens
+ * come from @theme in src/styles/global.css, so `bg-brand-600` reads from the
+ * design system rather than hardcoding a hex value in markup. Drop to plain CSS
+ * only for what utilities cannot express: base element defaults, complex
+ * keyframes, and rules keyed to user preferences. Those live in global.css.
+ */
+
+interface Stat {
+	label: string;
+	value: string;
+}
+
+const stack: Stat[] = [
+	{ label: 'Astro', value: '7.2.2' },
+	{ label: 'Tailwind', value: '4.3.3' },
+	{ label: 'TypeScript', value: '6.0.3' },
+	{ label: 'pnpm / bun', value: '11.1.1 / 1.3.13' },
+];
+---
+
+<main class="mx-auto flex min-h-full max-w-3xl flex-col justify-center gap-10 px-6 py-16">
+	<header class="flex items-center gap-4">
+		<img src={astroLogo.src} width="46" height="19" alt="" class="dark:invert" />
+		<span class="h-6 w-px bg-slate-300 dark:bg-slate-700"></span>
+		<p class="text-sm font-medium tracking-wide text-slate-500 dark:text-slate-400">
+			Proyecto base
+		</p>
+	</header>
+
+	<div class="space-y-4">
+		<h1 class="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+			EduAI
+		</h1>
+		<p class="max-w-prose text-lg text-slate-600 dark:text-slate-300">
+			Astro 7 con Tailwind 4. Las dependencias se instalan con
+			<code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm dark:bg-slate-800"
+				>pnpm</code
+			>; los scripts y el build corren con
+			<code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm dark:bg-slate-800"
+				>bun</code
+			>. Empieza editando
+			<code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm dark:bg-slate-800"
+				>src/pages/index.astro</code
+			>.
+		</p>
+	</div>
+
+	<dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-slate-200 sm:grid-cols-4 dark:bg-slate-800">
+		{
+			stack.map((item) => (
+				<div class="bg-white p-4 dark:bg-slate-950">
+					<dt class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
+						{item.label}
+					</dt>
+					<dd class="mt-1 font-mono text-sm text-slate-900 dark:text-slate-100">{item.value}</dd>
+				</div>
+			))
+		}
+	</dl>
+
+	<div class="flex flex-wrap gap-3">
+		<a
+			href="https://docs.astro.build"
+			class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+		>
+			Documentación de Astro
+		</a>
+		<a
+			href="https://tailwindcss.com/docs"
+			class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
+		>
+			Documentación de Tailwind
+		</a>
+	</div>
+</main>

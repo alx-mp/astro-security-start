@@ -1,0 +1,25 @@
+# Health watchdog for dashboard-eduai.
+#
+# NOT INSTALLED YET. Run infra/install.sh to put it in place.
+#
+# The gap this closes: systemd reports a unit as "active" as long as the main
+# process is alive. An Astro server whose inner HTTP handler has wedged is still
+# an alive process, so Restart=always never fires and the site is down while
+# `systemctl status` says everything is fine. This probes the actual endpoint.
+
+[Unit]
+Description=Restart dashboard-eduai when it stops answering /health
+After=dashboard-eduai.service
+
+[Service]
+Type=oneshot
+# Two attempts, three seconds each, before declaring it dead. A single failed
+# probe during a GC pause or a slow render is not a reason to bounce a service.
+ExecStart=/bin/bash -c '\
+  for i in 1 2; do \
+    curl -fsS --max-time 3 http://127.0.0.1:4325/health >/dev/null && exit 0; \
+    sleep 2; \
+  done; \
+  echo "health probe failed twice, restarting dashboard-eduai"; \
+  systemctl restart dashboard-eduai.service'
+SyslogIdentifier=dashboard-eduai-health

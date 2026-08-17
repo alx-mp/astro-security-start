@@ -1,0 +1,106 @@
+# pnpm settings for this project.
+#
+# Read this before you reach for .npmrc: pnpm 11 no longer picks up its own
+# settings from .npmrc. It ignores them silently, which is worse than erroring,
+# because the file looks correct and does nothing. Verified on 2026-08-14 with
+# pnpm 11.1.1 by putting minimum-release-age and engine-strict in .npmrc (no
+# effect, install went through) and then here (both took effect immediately).
+#
+# .npmrc still owns registry URLs and auth. Everything below belongs here.
+# Keys are camelCase; pnpm 11 skips any key that is not.
+
+# Wait three days before adopting a freshly published version. Most malicious
+# npm releases are caught and yanked within hours, and this window is what buys
+# the ecosystem time to notice. Cost: a brand-new upstream patch takes three
+# days to become installable.
+minimumReleaseAge: 4320
+
+# Fail rather than quietly fall back to a version that has not aged yet.
+minimumReleaseAgeStrict: true
+
+# Some registry mirrors do not return the "time" field. Without this, resolution
+# hard-fails with ERR_PNPM_MISSING_TIME instead of just skipping the age check.
+minimumReleaseAgeIgnoreMissingTime: true
+
+# Packages allowed to skip the waiting period.
+#
+# The rule: first-party Astro packages that we pin by hand in package.json are
+# excluded; everything else waits. The age gate exists for the ~370 transitive
+# packages nobody reads before they land in node_modules. A framework version is
+# not one of those — changing it is a deliberate act, reviewed, and released by
+# the Astro core team from the same CI. Without these entries a caret range
+# cannot resolve at all on release day, because no older version satisfies it.
+#
+# A third-party package added here is a debt. Write the date and the reason, and
+# take it back out.
+minimumReleaseAgeExclude:
+  - astro
+  - '@astrojs/node'
+  - '@astrojs/check'
+
+# Refuse a version whose publishing trust is weaker than earlier versions of the
+# same package: a package that used to ship with a trusted publisher or a
+# provenance attestation and suddenly ships with neither. That drop is the
+# signature of a stolen maintainer token.
+trustPolicy: no-downgrade
+
+# Only apply the trust check to versions published in the last 30 days
+# (minutes). The signal it is built for is a token stolen today and used to
+# publish today. Applying it to the whole back catalogue instead produces a
+# steady stream of false positives from maintainers who simply changed their
+# release workflow years ago, and every one of those costs a manual exception.
+#
+# Concrete case from 2026-08-14: chokidar 4.0.0 and 4.0.1 carry a provenance
+# attestation, 4.0.2 and 4.0.3 do not. Same npm account published all four
+# (paulmillr, the long-standing maintainer), so nothing was stolen. Without this
+# window, `@astrojs/check` could not be installed at all.
+trustPolicyIgnoreAfter: 43200
+
+# Named exceptions, for a downgrade inside the 30-day window that you have
+# checked by hand. Every entry needs a date and a reason.
+trustPolicyExclude: []
+
+# Transitive dependencies must come from the registry. A sub-dependency pointing
+# at a git URL or a random tarball is not something we can audit, and it is a
+# known way to smuggle code past a lockfile review.
+blockExoticSubdeps: true
+
+# Dependency install scripts stay off. pnpm already blocks them by default; this
+# says so out loud so nobody flips it on by accident. Anything that genuinely
+# needs to compile goes in allowBuilds by name.
+dangerouslyAllowAllBuilds: false
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+# A dependency that wants to run a build script and is not in allowBuilds stops
+# the install instead of printing a warning you will scroll past.
+strictDepBuilds: true
+
+# Honor the engines field in package.json instead of printing a warning and
+# carrying on.
+engineStrict: true
+
+# An unmet peer dependency fails the install. This is the setting most likely to
+# bite when adding a package, and that is the point: the alternative is a
+# warning nobody reads and a version mismatch found at runtime.
+strictPeerDependencies: true
+
+# Warn when node_modules has drifted from the lockfile. Applies to `pnpm run`;
+# scripts here normally go through bun, so treat it as a safety net for anyone
+# who runs pnpm directly.
+verifyDepsBeforeRun: warn
+
+# CI noise.
+updateNotifier: false
+
+# Severity floor for a bare `pnpm audit`. The scripts in package.json pass
+# --audit-level explicitly; this covers anyone who does not.
+auditLevel: moderate
+
+auditConfig:
+  # Advisories consciously accepted, with a dated reason each. Empty is the
+  # correct state; an entry here is a debt, not a fix.
+  #
+  # GHSA IDs only. pnpm 11 dropped ignoreCves.
+  ignoreGhsas: []

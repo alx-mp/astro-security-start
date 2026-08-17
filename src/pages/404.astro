@@ -1,0 +1,31 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Rendered on demand, not prerendered.
+//
+// `export const prerender = true` looks like the obvious optimisation here and
+// it is a security hole: the adapter serves prerendered routes from its static
+// file handler without running middleware, so the 404 went out with none of the
+// headers in src/middleware.ts. Measured on 2026-08-14 — 0 of X-Frame-Options,
+// Strict-Transport-Security and Referrer-Policy were present.
+//
+// Rendering a 404 on demand costs nothing: no API call, no data, one template.
+---
+
+<Layout title="404 · Página no encontrada" description="La página solicitada no existe.">
+	<main class="mx-auto flex min-h-full max-w-xl flex-col justify-center gap-6 px-6 py-16">
+		<p class="font-mono text-sm text-slate-500 dark:text-slate-400">404</p>
+		<h1 class="text-3xl font-semibold tracking-tight">Esta página no existe</h1>
+		<p class="text-slate-600 dark:text-slate-300">
+			El enlace puede estar roto o la página pudo haberse movido.
+		</p>
+		<div>
+			<a
+				href="/"
+				class="inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+			>
+				Volver al inicio
+			</a>
+		</div>
+	</main>
+</Layout>

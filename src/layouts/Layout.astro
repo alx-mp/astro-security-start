@@ -1,0 +1,31 @@
+---
+import '../styles/global.css';
+
+interface Props {
+	/** Goes in <title>. Required, because a page without one is a bug. */
+	title: string;
+	/** Meta description. Omit rather than inventing filler. */
+	description?: string;
+	/** BCP 47 language tag for <html lang>. */
+	lang?: string;
+}
+
+const { title, description, lang = 'es' } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang} class="h-full">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<link rel="canonical" href={Astro.url.href} />
+		{description && <meta name="description" content={description} />}
+		<title>{title}</title>
+	</head>
+	<body class="h-full bg-white font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+		<slot />
+	</body>
+</html>

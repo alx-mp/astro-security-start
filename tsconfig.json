@@ -1,0 +1,15 @@
+{
+	// One line is the whole config. Astro 7's base preset already declares
+	// include and exclude using ${configDir} (TypeScript 5.5+), so they resolve
+	// against this file's directory without being restated here. Older Astro
+	// scaffolds repeated them; that copy is now duplication waiting to drift.
+	//
+	// Verified with the project's own TypeScript 6.0.3:
+	//   include -> <project>/.astro/types.d.ts, <project>/**/*
+	//   exclude -> <project>/dist
+	//   strict  -> true
+	//
+	// Swap "strict" for "strictest" to also turn on noUncheckedIndexedAccess and
+	// friends. The presets live in node_modules/astro/tsconfigs/.
+	"extends": "astro/tsconfigs/strict"
+}

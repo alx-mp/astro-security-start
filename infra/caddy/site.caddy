@@ -1,0 +1,62 @@
+# Caddy vhost template for this project. NOT DEPLOYED.
+#
+# Copy to /home/apps/caddy/sites/<domain>.caddy, replace DOMAIN, then:
+#   caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
+#
+# The app renders on demand (output: 'server', @astrojs/node standalone), so
+# Caddy proxies rather than serving files. The standalone server handles the
+# static assets itself.
+#
+# Assumes the snippets already defined in /etc/caddy/Caddyfile: secure_headers
+# (HSTS, nosniff, Referrer-Policy, -Server) and cf_dns_tls.
+
+DOMAIN {
+	# DNS-01 through the Cloudflare token. Required because the zone is
+	# CF-proxied, so HTTP-01 never reaches this box.
+	import cf_dns_tls
+
+	# House baseline. Note it sets X-Frame-Options SAMEORIGIN; the header block
+	# below overrides it to DENY for this site.
+	import secure_headers
+
+	encode zstd gzip
+
+	header {
+		X-Frame-Options "DENY"
+		Permissions-Policy "accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Origin-Agent-Cluster "?1"
+		X-DNS-Prefetch-Control "off"
+	}
+
+	# Deliberately NOT set here: Content-Security-Policy.
+	#
+	# Astro builds the policy itself from security.csp and sends it as a real
+	# response header on every on-demand route, hashes included. A CSP set here
+	# would be a second policy, and two policies intersect: ours has no
+	# script-src hashes, so the intersection would block Astro's own bundles.
+	# Add directives in astro.config.mjs instead. The only reason the earlier
+	# static version of this file carried one was that prerendered routes ship
+	# their policy in a <meta> tag, where frame-ancestors is ignored.
+	#
+	# If you add prerendered routes back (export const prerender = true), those
+	# do ship a meta tag, and frame-ancestors for them comes from X-Frame-Options
+	# above.
+
+	# /health is for the local watchdog, not the internet.
+	@health path /health
+	handle @health {
+		respond 404
+	}
+
+	reverse_proxy 127.0.0.1:4325 {
+		# Astro reads both of these. Without X-Forwarded-Host, and without the
+		# hostname listed in ALLOWED_HOSTNAMES, Astro.url is built from the
+		# internal bind address and every absolute URL points at 127.0.0.1.
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+}
