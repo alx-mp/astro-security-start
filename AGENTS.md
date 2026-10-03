@@ -247,6 +247,26 @@ A service up for three weeks serving pre-edit code looks perfectly healthy in
 Secrets go in `/etc/dashboard-eduai.env`, mode 600. Unit files are world
 readable.
 
+`SITE_URL` and `ALLOWED_HOSTNAMES` are build inputs: `astro.config.mjs` reads
+them when the build starts and the result is fixed inside `dist/`.
+`stack.sh redeploy` takes both from that env file. A bare `bun run build` takes
+them from the project `.env`, and a build made with localhost values answers
+403 to its own forms once it is behind Caddy.
+
+Three things about `infra/caddy/site.caddy`, measured on a first real deploy
+(2026-10-03):
+
+- All response headers live in one `header` block that Caddy defers, because
+  it removes `Server`. A block that is not deferred sets its values before the
+  proxy runs and the proxy appends the app's copies: five headers went out
+  twice.
+- No shared header snippet is imported next to it. A deferred snippet runs
+  after a block written below it, and its `X-Frame-Options: SAMEORIGIN`
+  replaced the `DENY` the app sends.
+- `X-Forwarded-For` is overwritten with `{client_ip}`. Astro takes the first
+  entry as `clientAddress`, and a CDN appends to whatever list the browser
+  sent, so without the overwrite a visitor picks their own address.
+
 Dev bind is pinned to `127.0.0.1` in `astro.config.mjs` (`server.host`): `false` let Node pick ::1 while every probe on this host asks 127.0.0.1.
 
 Still open: the repository has no CI workflow, so nothing runs `bun run ci` on

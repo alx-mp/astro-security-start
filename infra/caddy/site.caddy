@@ -7,27 +7,41 @@
 # Caddy proxies rather than serving files. The standalone server handles the
 # static assets itself.
 #
-# Assumes the snippets already defined in /etc/caddy/Caddyfile: secure_headers
-# (HSTS, nosniff, Referrer-Policy, -Server) and cf_dns_tls.
+# Assumes the cf_dns_tls snippet defined in /etc/caddy/Caddyfile.
 
 DOMAIN {
 	# DNS-01 through the Cloudflare token. Required because the zone is
 	# CF-proxied, so HTTP-01 never reaches this box.
 	import cf_dns_tls
 
-	# House baseline. Note it sets X-Frame-Options SAMEORIGIN; the header block
-	# below overrides it to DENY for this site.
-	import secure_headers
-
 	encode zstd gzip
 
+	# The app already sends these on every route it renders. They are repeated
+	# here for the responses Caddy writes itself: the 404 for /health below and
+	# the 502 while the app restarts.
+	#
+	# The block is deferred, which Caddy does on its own whenever a block
+	# removes a header (-Server). Deferred means it runs as the response goes
+	# out and replaces what the app sent, so each header appears once. A block
+	# that is not deferred sets its values first and the proxy then appends the
+	# app's copies: every header twice.
+	#
+	# Do not import a shared header snippet next to this block. If the snippet
+	# is deferred too (any snippet that removes Server is), it runs after a
+	# block written below it and its values win. Measured 2026-10-03: a
+	# snippet with X-Frame-Options SAMEORIGIN replaced the DENY set here and
+	# the DENY the app sends.
 	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
 		X-Frame-Options "DENY"
 		Permissions-Policy "accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=()"
 		Cross-Origin-Opener-Policy "same-origin"
 		Cross-Origin-Resource-Policy "same-origin"
 		Origin-Agent-Cluster "?1"
 		X-DNS-Prefetch-Control "off"
+		-Server
 	}
 
 	# Deliberately NOT set here: Content-Security-Policy.
@@ -57,6 +71,15 @@ DOMAIN {
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
 		header_up Host {host}
-		header_up X-Real-IP {remote_host}
+
+		# Astro takes the first entry of X-Forwarded-For as clientAddress. A
+		# CDN appends to whatever list the browser sent, so the first entry of
+		# the incoming header is the visitor's to choose, and anything keyed
+		# on clientAddress (a rate limit, an audit log) can be walked around.
+		# {client_ip} is the peer address, or the CDN's client header when
+		# trusted_proxies and client_ip_headers are set in the global options.
+		# One value, set here.
+		header_up X-Forwarded-For {client_ip}
+		header_up X-Real-IP {client_ip}
 	}
 }

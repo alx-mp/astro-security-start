@@ -3,7 +3,7 @@
 #
 #   ./infra/stack.sh status     unit state, health, and whether the build is stale
 #   ./infra/stack.sh restart    restart the running unit
-#   ./infra/stack.sh redeploy   pnpm install, build, restart, verify health
+#   ./infra/stack.sh redeploy   pnpm install, build with the deploy env, restart, verify health
 #   ./infra/stack.sh logs       follow the journal
 #
 # `status` compares the build timestamp against the newest source file. That
@@ -15,6 +15,27 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT=4325
+ENV_FILE=/etc/dashboard-eduai.env
+
+# Reads one value from the env file without handing the file to the shell: a
+# `source` would expand any $ inside a value.
+env_value() {
+	[[ -r $ENV_FILE ]] || return 0
+	sed -n "s/^$1=//p" "$ENV_FILE" | tail -1
+}
+
+# SITE_URL and ALLOWED_HOSTNAMES are read when astro.config.mjs loads, which is
+# at build time: the canonical origin and the hosts Astro trusts behind the
+# proxy end up inside dist/. A build made without them answers 403 to its own
+# forms once it sits behind Caddy. The unit reads the same file at runtime.
+build_for_deploy() {
+	local site hosts
+	site="$(env_value SITE_URL)"
+	hosts="$(env_value ALLOWED_HOSTNAMES)"
+	[[ -n $site ]] || { echo "SITE_URL is missing from ${ENV_FILE}" >&2; exit 1; }
+	echo "  building for ${site} (trusted hosts: ${hosts:-none})"
+	SITE_URL="$site" ALLOWED_HOSTNAMES="$hosts" bun run build
+}
 
 active_unit() {
 	for unit in dashboard-eduai.service dashboard-eduai-dev.service; do
@@ -65,7 +86,7 @@ cmd_restart() {
 cmd_redeploy() {
 	cd "$PROJECT_DIR"
 	pnpm install --frozen-lockfile
-	bun run build
+	build_for_deploy
 	cmd_restart
 }
 
