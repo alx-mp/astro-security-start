@@ -4,6 +4,10 @@ dist/
 # generated types
 .astro/
 
+# Vitest 5 artifact root: reporter output (json, junit, blob, html) and test
+# attachments all land here.
+.vitest/
+
 # dependencies
 node_modules/
 

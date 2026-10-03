@@ -6,9 +6,9 @@
  * execute the root package's preinstall before they touch node_modules, and all
  * of them export npm_config_user_agent first, so one script covers all four.
  *
- * Measured on this host on 2026-08-14:
+ * Measured on this host (npm and bun on 2026-08-14, pnpm on 2026-10-03):
  *   npm  11.12.1 -> "npm/11.12.1 node/v24.15.0 linux x64 workspaces/false"
- *   pnpm 11.1.1  -> "pnpm/11.1.1 npm/? node/v24.15.0 linux x64"
+ *   pnpm 12.8.1  -> "pnpm/12.8.1 npm/? node/? linux x64"
  *   bun  1.3.13  -> "bun/1.3.13 npm/? node/v24.3.0 linux x64"
  *
  * The required version comes from package.json "packageManager" so there is
@@ -26,17 +26,18 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8'));
 
-const declared = manifest.packageManager ?? 'pnpm@11.1.1';
+const declared = manifest.packageManager ?? 'pnpm@12.8.1';
 const [wantedName, wantedVersion = ''] = declared.split('@');
 const wantedMajor = Number.parseInt(wantedVersion, 10) || 0;
 
 const agent = process.env.npm_config_user_agent ?? '';
 const execPath = process.env.npm_execpath ?? '';
 
-// pnpm does not always export npm_config_user_agent (it skipped it under
-// `pnpm install --frozen-lockfile` on 2026-08-14), so fall back to the path of
-// the binary that spawned us before giving up. npm points at npm-cli.js, bun
-// points at the bun binary itself.
+// pnpm 11.1.1 skipped npm_config_user_agent under `pnpm install
+// --frozen-lockfile` (2026-08-14). pnpm 12.8.1 exports it on both paths, but
+// the fallback stays for whichever version forgets next: the path of the binary
+// that spawned us. npm points at npm-cli.js, bun at the bun binary itself, and
+// pnpm 12 at its native binary, `pnpm-native`.
 function identify() {
 	if (agent !== '') {
 		const [name, version = ''] = agent.split(' ')[0].split('/');

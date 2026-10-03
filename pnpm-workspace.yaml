@@ -6,8 +6,13 @@
 # pnpm 11.1.1 by putting minimum-release-age and engine-strict in .npmrc (no
 # effect, install went through) and then here (both took effect immediately).
 #
+# Re-checked on 2026-10-03 with pnpm 12.8.1 (node-linker and
+# strict-peer-dependencies in .npmrc): still ignored, still no warning.
+#
 # .npmrc still owns registry URLs and auth. Everything below belongs here.
-# Keys are camelCase; pnpm 11 skips any key that is not.
+# Keys are camelCase. pnpm 12 warns about a kebab-case key and ignores it, and
+# stops with ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS on a key it does not know,
+# so a typo in this file can no longer drop a policy without saying so.
 
 # Wait three days before adopting a freshly published version. Most malicious
 # npm releases are caught and yanked within hours, and this window is what buys
@@ -60,6 +65,15 @@ trustPolicyIgnoreAfter: 43200
 # checked by hand. Every entry needs a date and a reason.
 trustPolicyExclude: []
 
+# Since pnpm 11.3 an install, frozen ones included, checks every entry of the
+# lockfile it loads against minimumReleaseAge and trustPolicy and prints
+# "Lockfile passes supply-chain policies" (a recent pass over an unchanged
+# lockfile is reused). That is what catches a lockfile resolved under a weaker
+# policy than this file. `true` here skips it. false is already the default;
+# it is written down so nobody turns the check off to save a few seconds.
+# https://pnpm.io/settings/dependency-resolution#trustlockfile
+trustLockfile: false
+
 # Transitive dependencies must come from the registry. A sub-dependency pointing
 # at a git URL or a random tarball is not something we can audit, and it is a
 # known way to smuggle code past a lockfile review.
@@ -94,13 +108,16 @@ verifyDepsBeforeRun: warn
 # CI noise.
 updateNotifier: false
 
-# Severity floor for a bare `pnpm audit`. The scripts in package.json pass
-# --audit-level explicitly; this covers anyone who does not.
-auditLevel: moderate
+# `pnpm audit` settings. The `audit` section replaced auditLevel and
+# auditConfig.ignoreGhsas in pnpm 11.16; pnpm 12 still reads the old names and
+# warns when both are present. https://pnpm.io/cli/audit#configuration
+audit:
+  # Severity floor. No package.json script wraps `pnpm audit`, so this is the
+  # only place the level is set.
+  level: moderate
 
-auditConfig:
   # Advisories consciously accepted, with a dated reason each. Empty is the
   # correct state; an entry here is a debt, not a fix.
   #
   # GHSA IDs only. pnpm 11 dropped ignoreCves.
-  ignoreGhsas: []
+  ignore: []

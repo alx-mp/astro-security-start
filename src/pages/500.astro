@@ -4,12 +4,20 @@ import Layout from '../layouts/Layout.astro';
 // Astro passes the thrown error to this page. Read it, log it, and do not
 // render it: a stack trace in the browser tells an attacker your file layout,
 // your dependency versions and sometimes your connection strings.
+interface Props {
+	/** Whatever was thrown. Not always an Error, hence `unknown`. */
+	error: unknown;
+}
+
 const { error } = Astro.props;
 
+// Astro.logger writes through the logger set in astro.config (the console one
+// by default), so this line follows Astro's own output if a project swaps in a
+// JSON destination. It takes a single string, so message and stack are joined.
 if (error instanceof Error) {
-	console.error('[500]', Astro.url.pathname, error.message, error.stack);
+	Astro.logger.error(`[500] ${Astro.url.pathname} ${error.message}\n${error.stack ?? ''}`);
 } else if (error !== undefined) {
-	console.error('[500]', Astro.url.pathname, String(error));
+	Astro.logger.error(`[500] ${Astro.url.pathname} ${String(error)}`);
 }
 ---
 
