@@ -5,22 +5,24 @@ point for other projects. Keep it on current stable and keep these notes true.
 
 ## Stack
 
-Checked 2026-08-14 against the registry and the installed binaries.
+Checked 2026-10-03 against the registry and the installed binaries.
 
-| Piece             | Pinned  | Latest | Why not newer                                       |
-| ----------------- | ------- | ------ | --------------------------------------------------- |
-| astro             | ^7.2.2  | 7.2.2  | current                                              |
-| @astrojs/node     | ^11.1.2 | 11.1.2 | current, peer `astro ^7.0.0`                         |
-| tailwindcss       | ^4.3.3  | 4.3.3  | current, as a Vite plugin                            |
-| @tailwindcss/vite | ^4.3.3  | 4.3.3  | peer `vite ^5.2 \|\| ^6 \|\| ^7 \|\| ^8`; Astro 7 ships Vite 8 |
-| typescript        | ^6.0.3  | 7.0.2  | `@astrojs/check@0.9.10` peer is `^5.0.0 \|\| ^6.0.0` |
-| @biomejs/biome    | ^2.5.8  | 2.5.8  | current, lint + format in one tool                   |
-| vitest            | ^4.1.10 | 4.1.10 | current                                              |
-| @astrojs/check    | ^0.9.10 | 0.9.10 | current                                              |
-| @types/node       | ^26.2.0 | 26.2.0 | current                                              |
-| pnpm              | 11.1.1  | 11.1.1 | pinned in `packageManager`, via corepack             |
-| bun               | 1.3.13  | 1.3.13 | host binary at `/root/.bun/bin/bun`                  |
-| node              | >=22.12 | 24.15.0| floor comes from astro's own `engines`               |
+| Piece             | Pinned  | Latest  | Why not newer                                                   |
+| ----------------- | ------- | ------- | --------------------------------------------------------------- |
+| astro             | ^7.3.5  | 7.3.5   | current; 7.4.0-beta.1 is pre-release                            |
+| @astrojs/node     | ^11.1.6 | 11.1.6  | current, peer `astro ^7.2.1`                                    |
+| tailwindcss       | ^4.3.3  | 4.3.3   | current, as a Vite plugin                                       |
+| @tailwindcss/vite | ^4.3.3  | 4.3.3   | peer `vite ^5.2 \|\| ^6 \|\| ^7 \|\| ^8`; Astro 7 ships Vite 8  |
+| typescript        | ^6.0.3  | 7.0.2   | `@astrojs/check@0.9.10` peer is `^5.0.0 \|\| ^6.0.0`            |
+| @biomejs/biome    | ^2.5.14 | 2.5.15  | 2.5.15 published 09-30 15:23 UTC, inside the 3-day gate         |
+| vitest            | ^5.0.2  | 5.0.3   | 5.0.3 published 09-30 11:30 UTC, inside the 3-day gate          |
+| @astrojs/check    | ^0.9.10 | 0.9.10  | current                                                         |
+| @types/node       | ^26.6.3 | 26.6.4  | 26.6.4 published 10-01 22:39 UTC, inside the 3-day gate         |
+| pnpm              | 12.8.1  | 12.8.1  | `latest` tag; pinned in `packageManager`, via corepack          |
+| bun               | 1.3.13  | 1.4.2   | host binary at `/root/.bun/bin/bun`, shared with other services |
+| node              | >=22.12 | 24.21.0 | floor comes from astro's own `engines`; host runs 24.15.0       |
+
+The three gated rows clear by 2026-10-04 22:39 UTC. Rerun the update after that.
 
 Port **4325**, not Astro's 4321: this host already runs Astro services on 4321,
 4322, 4323 and 4331, each a systemd unit with `Restart=always`. Check
@@ -34,6 +36,7 @@ pnpm install            # dependencies
 pnpm add <pkg>          # add one
 pnpm update --latest    # move to current stable
 pnpm audit              # advisories
+pnpm audit signatures   # registry signatures of what is installed
 
 bun run dev             # dev server on :4325
 bun run build           # lockfiles -> astro check -> astro build
@@ -44,9 +47,11 @@ bun run test            # vitest run
 bun run ci              # lockfiles + lint + types + tests + build
 ```
 
-`pnpm audit` cannot go inside a `bun run` script. `[run] bun = true` in
-`bunfig.toml` puts a `node` shim ahead of the real binary, pnpm 11 needs
-`node:sqlite`, and Bun 1.3.13 does not implement it. Run it directly.
+`pnpm audit` has no `bun run` script; run it directly. Under pnpm 11 it could
+not have one: `[run] bun = true` in `bunfig.toml` puts a `node` shim ahead of
+the real binary, pnpm 11 needed `node:sqlite`, and Bun 1.3.13 does not
+implement it. pnpm 12 is a native binary and does run under the shim (checked
+2026-10-03).
 
 `npm install` and `bun install` both fail, in three layers:
 
@@ -73,7 +78,8 @@ ahead of time and served by the adapter's static handler, which does **not** run
 middleware. Measured on 2026-08-14: with `prerender = true` on `404.astro`, the
 404 response carried 0 of 9 security headers. It is now on demand and every
 route reports 9 of 9. If you do prerender a route, Caddy has to supply its
-headers.
+headers. Measured again on 2026-10-03 with Astro 7.3.5 and a throwaway
+prerendered page: still 0 of 9, CSP only as a `<meta>` tag.
 
 ## Talking to NestJS
 
@@ -121,11 +127,19 @@ exhausts sockets on this side.
   and one word about the API. No versions, no paths, no upstream error bodies.
   The Caddy template returns 404 for it from the internet.
 
-Supply chain, all in `pnpm-workspace.yaml` (pnpm 11 ignores its own settings in
-`.npmrc`, silently): `minimumReleaseAge: 4320` with `minimumReleaseAgeStrict`,
-`trustPolicy: no-downgrade` scoped by `trustPolicyIgnoreAfter: 43200` to the
-last 30 days, `blockExoticSubdeps`, `allowBuilds` as an allow-list,
-`strictDepBuilds`, `strictPeerDependencies`, `engineStrict`.
+Supply chain, all in `pnpm-workspace.yaml` (pnpm 11 and 12 ignore their own
+settings in `.npmrc`, silently): `minimumReleaseAge: 4320` with
+`minimumReleaseAgeStrict`, `trustPolicy: no-downgrade` scoped by
+`trustPolicyIgnoreAfter: 43200` to the last 30 days, `blockExoticSubdeps`,
+`allowBuilds` as an allow-list, `strictDepBuilds`, `strictPeerDependencies`,
+`engineStrict`. pnpm 12 also checks the lockfile itself against the age and
+trust rules before installing from it, frozen installs included
+(`trustLockfile: false`), and stops on a key it does not recognise in that file.
+
+`pnpm-lock.yaml` holds two YAML documents since pnpm 12: the pinned pnpm and its
+platform binaries, with integrity hashes, then the dependency graph. A scanner
+or SBOM tool that reads only the first document reports zero dependencies and
+no error (https://pnpm.io/supply-chain-security).
 
 `minimumReleaseAgeExclude` holds first-party Astro packages only. A caret range
 cannot resolve on release day without it. Third-party entries are debt.
@@ -167,14 +181,20 @@ hits. Zero.
 
 ## Lint, format, test
 
-Biome does lint and format for everything, including `.astro` (native since
-2.3). One tool instead of ESLint + plugins + Prettier + a plugin matrix to keep
-in sync across many cloned projects. `useSortedClasses` sorts Tailwind classes,
-the same algorithm as `prettier-plugin-tailwindcss`.
+Biome does lint and format for everything. One tool instead of ESLint + plugins
++ Prettier + a plugin matrix to keep in sync across many cloned projects.
+`useSortedClasses` sorts Tailwind classes, the same algorithm as
+`prettier-plugin-tailwindcss`.
+
+In `.astro` files Biome checks the frontmatter only. It can read the markup
+since 2.3, but behind `html.experimentalFullSupportEnabled`, which Biome 2.5
+still calls experimental and which is off here. Until it is on, no rule sees
+the template half, `useSortedClasses` included (measured 2026-10-03 with 2.5.14).
 
 Vitest via `getViteConfig()`, which loads `astro.config.mjs` so `astro:env/server`
 resolves inside tests. `src/middleware.test.ts` covers the two handlers that are
-our own code rather than a framework setting.
+our own code rather than a framework setting. Vitest 5 keeps reporter output and
+attachments under `.vitest/`; git and Biome both ignore it.
 
 ## TypeScript and the editor
 
@@ -229,8 +249,8 @@ readable.
 
 Dev bind is pinned to `127.0.0.1` in `astro.config.mjs` (`server.host`): `false` let Node pick ::1 while every probe on this host asks 127.0.0.1.
 
-Still open: no git repository, so no diff, no history and no CI to hang
-`bun run ci` on. Firewalld has no port for this app and no vhost is deployed.
+Still open: the repository has no CI workflow, so nothing runs `bun run ci` on
+push. Firewalld has no port for this app and no vhost is deployed.
 
 ## Reusing this as a template
 
@@ -264,14 +284,18 @@ bun run ci
 Then update the version table. Two things to expect:
 
 - A **peer dependency** blocking a major — that is why typescript sits on 6
-  while 7 is out. Check with `pnpm view <pkg> peerDependencies`.
+  while 7 is out. Check with `pnpm view <pkg> peerDependencies`. pnpm 12 stops
+  the whole update with `ERR_PNPM_PEER_DEP_ISSUES` and leaves `package.json`
+  alone (pnpm 11 warned and wrote the bad range), so hold the blocked package
+  back: `pnpm update --latest '!typescript'`.
 - `ERR_PNPM_NO_MATURE_MATCHING_VERSION` means the release-age policy is working.
   Wait three days rather than adding an exclude entry.
 
-After a **bun** upgrade, re-check `bunfig.toml`. bun.com documents 1.3.14 while
-this host runs 1.3.13, and three keys differ: `[install] dryRun` is ignored,
-`[install] frozenLockfile` blocks the lockfile write but not the install, and
-`[run] noOrphans` does not exist. Two are waiting there to be enabled.
+After a **bun** upgrade, re-check `bunfig.toml`. bun.com documents the current
+release (1.4.2 on 2026-10-03) while this host runs 1.3.13, and three keys
+differ: `[install] dryRun` is ignored, `[install] frozenLockfile` blocks the
+lockfile write but not the install, and `[run] noOrphans` does not exist. Two
+are waiting there to be enabled.
 
 Before a new Astro major, read the upgrade guide
 (`https://docs.astro.build/en/guides/upgrade-to/v<N>/`) and re-check the config

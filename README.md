@@ -96,7 +96,7 @@ instalación bloqueados salvo allowlist, peers estrictos.
 
 ## Puesta en marcha
 
-Requisitos: Node 24+, pnpm 11 (corepack), bun.
+Requisitos: Node 24+, pnpm 12 (corepack), bun.
 
 ```sh
 pnpm install
